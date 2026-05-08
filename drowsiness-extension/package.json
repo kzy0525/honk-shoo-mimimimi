@@ -1,0 +1,11 @@
+{
+  "name": "drowsiness-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "node setup.js"
+  },
+  "dependencies": {
+    "@mediapipe/face_mesh": "^0.4.0"
+  }
+}
