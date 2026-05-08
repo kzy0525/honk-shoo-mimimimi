@@ -1,80 +1,61 @@
-'use strict';
+import { FaceLandmarker, FilesetResolver } from './vendor/vision_bundle.mjs';
+import { DetectionState } from './detection.js';
 
-const video = document.getElementById('video');
-const detectionState = new DetectionState();
+const video    = document.getElementById('video');
+const detState = new DetectionState();
 
+const SEND_INTERVAL = 100; // ms between metric messages to background
 let lastSendMs = 0;
-const SEND_INTERVAL = 100; // send metrics at most 10×/sec
 
-// ── MediaPipe Face Mesh setup ─────────────────────────────────────────────────
-const faceMesh = new FaceMesh({
-  locateFile: (file) => chrome.runtime.getURL(`vendor/${file}`),
+// ── Init MediaPipe FaceLandmarker ─────────────────────────────────────────────
+const vision = await FilesetResolver.forVisionTasks(
+  chrome.runtime.getURL('vendor/wasm')
+);
+
+const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+  baseOptions: {
+    modelAssetPath: chrome.runtime.getURL('vendor/face_landmarker.task'),
+    delegate: 'GPU',
+  },
+  outputFaceBlendshapes: false,
+  runningMode: 'VIDEO',
+  numFaces: 1,
 });
 
-faceMesh.setOptions({
-  maxNumFaces: 1,
-  refineLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5,
-});
+// ── Processing loop ───────────────────────────────────────────────────────────
+function processFrame() {
+  if (video.readyState < 2) return;
 
-faceMesh.onResults((results) => {
-  const now = Date.now();
+  const now    = Date.now();
+  const result = faceLandmarker.detectForVideo(video, now);
   if (now - lastSendMs < SEND_INTERVAL) return;
   lastSendMs = now;
 
   let data;
-  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-    data = {
-      faceDetected: true,
-      ...detectionState.update(results.multiFaceLandmarks[0], now),
-    };
+  if (result.faceLandmarks && result.faceLandmarks.length > 0) {
+    data = { faceDetected: true, ...detState.update(result.faceLandmarks[0], now) };
   } else {
     data = {
       faceDetected: false,
-      leftEar: 0,
-      rightEar: 0,
-      mar: 0,
-      headAngle: 0,
-      blinkDuration: detectionState.lastBlinkMs,
-      yawnCount: detectionState.yawnTs.length,
-      drowsinessScore: detectionState.lastScore,
+      leftEar: 0, rightEar: 0, mar: 0, headAngle: 0,
+      blinkDuration: detState.lastBlinkMs,
+      yawnCount:     detState.yawnTs.length,
+      drowsinessScore: detState.lastScore,
     };
   }
 
   chrome.runtime.sendMessage({ type: 'METRICS', data }).catch(() => {});
-});
-
-// ── Processing loop ───────────────────────────────────────────────────────────
-let busy = false;
-
-function startLoop() {
-  setInterval(async () => {
-    if (busy || video.readyState < 2) return;
-    busy = true;
-    try {
-      await faceMesh.send({ image: video });
-    } catch (e) {
-      console.error('faceMesh.send error:', e);
-    } finally {
-      busy = false;
-    }
-  }, 100);
 }
 
+setInterval(processFrame, 33); // run at ~30fps, throttle sends to 10fps
+
 // ── Camera init ───────────────────────────────────────────────────────────────
-(async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: 'user' },
-    });
-    video.srcObject = stream;
-    await video.play();
-    startLoop();
-  } catch (err) {
-    chrome.runtime.sendMessage({
-      type: 'CAMERA_ERROR',
-      error: err.message,
-    }).catch(() => {});
-  }
-})();
+try {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { width: 640, height: 480, facingMode: 'user' },
+  });
+  video.srcObject = stream;
+  await video.play();
+} catch (err) {
+  chrome.runtime.sendMessage({ type: 'CAMERA_ERROR', error: err.message }).catch(() => {});
+}

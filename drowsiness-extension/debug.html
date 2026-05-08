@@ -23,17 +23,14 @@
       gap: 10px;
     }
     header h1 { font-size: 14px; color: #ccc; font-weight: 500; }
-    header .badge {
+    .badge {
       font-size: 11px;
       padding: 2px 8px;
       border-radius: 10px;
       background: #1a3a1a;
       color: #00dc00;
     }
-    #canvas-wrap {
-      position: relative;
-      margin-top: 16px;
-    }
+    #canvas-wrap { margin-top: 16px; }
     canvas {
       display: block;
       border: 1px solid #2a2a2a;
@@ -51,16 +48,13 @@
 <body>
   <header>
     <h1>Drowsiness Detector — Debug View</h1>
-    <span class="badge" id="header-badge">Loading…</span>
+    <span class="badge" id="header-badge">Initializing…</span>
   </header>
   <div id="canvas-wrap">
     <canvas id="canvas"></canvas>
   </div>
   <div id="no-camera">Camera access denied or unavailable.</div>
-  <!-- Hidden video source -->
   <video id="video" playsinline style="display:none" width="640" height="480"></video>
-  <script src="vendor/face_mesh.js"></script>
-  <script src="detection.js"></script>
-  <script src="debug.js"></script>
+  <script type="module" src="debug.js"></script>
 </body>
 </html>
