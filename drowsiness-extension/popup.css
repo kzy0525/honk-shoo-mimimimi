@@ -28,9 +28,16 @@ h2 {
   color: #aaa;
 }
 .dot { font-size: 10px; }
-.dot.active  { color: #00dc00; }
-.dot.error   { color: #dc0000; }
-.dot.inactive{ color: #666; }
+.dot.active   { color: #00dc00; }
+.dot.error    { color: #dc0000; }
+.dot.inactive { color: #555; }
+
+.alert-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
 
 /* Score */
 .score-display {
@@ -65,24 +72,89 @@ h2 {
 
 /* Metrics */
 .metrics {
-  border-top: 1px solid #222;
-  border-bottom: 1px solid #222;
+  border-top: 1px solid #1e1e1e;
+  border-bottom: 1px solid #1e1e1e;
   padding: 8px 0;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .metric-row {
   display: flex;
   justify-content: space-between;
   padding: 2px 0;
   font-size: 11px;
-  color: #999;
+  color: #888;
 }
 .metric-row span:last-child {
   color: #ccc;
   font-variant-numeric: tabular-nums;
 }
 
-/* Toggle */
+/* Divider */
+.section-divider {
+  height: 1px;
+  background: #1e1e1e;
+  margin: 10px 0;
+}
+
+/* Sound settings */
+.sound-settings { margin-bottom: 2px; }
+
+.sound-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.sound-label {
+  font-size: 11px;
+  color: #777;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.mute-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #bbb;
+  user-select: none;
+}
+.mute-toggle input { cursor: pointer; }
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: opacity 0.2s;
+}
+.vol-icon { font-size: 13px; }
+.volume-row input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #333;
+  outline: none;
+  cursor: pointer;
+}
+.volume-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #1a56b0;
+  cursor: pointer;
+}
+.vol-pct {
+  font-size: 11px;
+  color: #888;
+  min-width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Monitoring toggle */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -91,6 +163,7 @@ h2 {
   color: #bbb;
   margin-bottom: 10px;
   user-select: none;
+  font-size: 12px;
 }
 .toggle-row input { cursor: pointer; }
 

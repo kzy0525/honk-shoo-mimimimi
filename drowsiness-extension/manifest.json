@@ -15,7 +15,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["vendor/*", "debug.html"],
+      "resources": ["vendor/*", "debug.html", "assets/sounds/*"],
       "matches": ["<all_urls>"]
     }
   ]

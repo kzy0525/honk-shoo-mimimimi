@@ -103,11 +103,13 @@ export class DetectionState {
     const blinkScore = Math.min(1, this.lastBlinkMs / MAX_BLINK_MS);
 
     // Yawn tracking
+    let yawnJustDetected = false;
     if (mar > MAR_YAWN_THRESH) {
       if (this.yawnStart === null) this.yawnStart = now;
       else if (!this.yawnActive && (now - this.yawnStart) >= YAWN_MIN_MS) {
         this.yawnTs.push(now);
-        this.yawnActive = true;
+        this.yawnActive  = true;
+        yawnJustDetected = true;
       }
     } else {
       this.yawnStart  = null;
@@ -133,6 +135,7 @@ export class DetectionState {
     return { leftEar, rightEar, mar, headAngle,
              blinkDuration: this.lastBlinkMs,
              yawnCount: this.yawnTs.length,
-             drowsinessScore };
+             drowsinessScore,
+             yawnJustDetected };
   }
 }

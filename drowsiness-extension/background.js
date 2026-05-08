@@ -10,6 +10,7 @@ let appState = {
   blinkDuration: 0,
   yawnCount: 0,
   drowsinessScore: 0,
+  alertLevel: 0,   // 0=none 1=warning 2=alert
   cameraError: null,
 };
 
@@ -18,8 +19,8 @@ async function createOffscreenDoc() {
     if (await chrome.offscreen.hasDocument()) return;
     await chrome.offscreen.createDocument({
       url: chrome.runtime.getURL('offscreen.html'),
-      reasons: ['USER_MEDIA'],
-      justification: 'Webcam capture for drowsiness detection',
+      reasons: ['USER_MEDIA', 'AUDIO_PLAYBACK'],
+      justification: 'Webcam capture and audio alerts for drowsiness detection',
     });
   } catch (e) {
     console.error('createOffscreenDoc failed:', e);
@@ -59,6 +60,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
 
+  if (msg.type === 'GET_SETTINGS') {
+    chrome.storage.local.get(['muted', 'volume']).then(sendResponse).catch(() => sendResponse({}));
+    return true; // async response
+  }
+
   if (msg.type === 'SET_ACTIVE') {
     appState.active = msg.active;
     const op = msg.active ? createOffscreenDoc() : removeOffscreenDoc();
@@ -68,4 +74,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   return false;
+});
+
+// Forward storage changes to offscreen document
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local' || !('muted' in changes || 'volume' in changes)) return;
+  const settings = await chrome.storage.local.get(['muted', 'volume']);
+  chrome.runtime.sendMessage({ type: 'SETTINGS_UPDATE', ...settings }).catch(() => {});
 });

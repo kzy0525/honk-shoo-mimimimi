@@ -11,6 +11,7 @@
     <div class="status-row">
       <span class="dot" id="dot">●</span>
       <span id="status-text">Loading…</span>
+      <span class="alert-badge" id="alert-badge"></span>
     </div>
 
     <div class="score-display" id="score">--</div>
@@ -28,6 +29,25 @@
       <div class="metric-row"><span>Blink dur</span><span id="m-blink">--</span></div>
       <div class="metric-row"><span>Yawns / 5m</span><span id="m-yawn">--</span></div>
     </div>
+
+    <div class="section-divider"></div>
+
+    <div class="sound-settings">
+      <div class="sound-header">
+        <span class="sound-label">Sound</span>
+        <label class="mute-toggle">
+          <input type="checkbox" id="mute-cb">
+          <span id="mute-label">Mute</span>
+        </label>
+      </div>
+      <div class="volume-row" id="volume-row">
+        <span class="vol-icon">🔊</span>
+        <input type="range" id="volume-slider" min="0" max="100" value="80">
+        <span class="vol-pct" id="vol-pct">80%</span>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
 
     <label class="toggle-row">
       <input type="checkbox" id="toggle" checked>
