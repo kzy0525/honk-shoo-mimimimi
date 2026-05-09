@@ -30,27 +30,6 @@ async function loadSound(url) {
   return audioCtx.decodeAudioData(buf);
 }
 
-async function playBuffer(buffer) {
-  if (muted)   { console.log('[audio] muted, skipping'); return; }
-  if (!buffer) { console.warn('[audio] buffer is null/undefined'); return; }
-  try {
-    if (audioCtx.state !== 'running') {
-      console.log('[audio] context state:', audioCtx.state, '— resuming');
-      await audioCtx.resume();
-      console.log('[audio] context state after resume:', audioCtx.state);
-    }
-    const src  = audioCtx.createBufferSource();
-    const gain = audioCtx.createGain();
-    gain.gain.value = Math.max(0, Math.min(1, globalVolume));
-    src.buffer = buffer;
-    src.connect(gain);
-    gain.connect(audioCtx.destination);
-    src.start();
-    console.log('[audio] played buffer, duration:', buffer.duration.toFixed(2), 's');
-  } catch (e) {
-    console.error('[audio] playBuffer error:', e);
-  }
-}
 
 const sounds = {};
 
@@ -58,46 +37,48 @@ async function initAudio() {
   const base = chrome.runtime.getURL('assets/sounds/');
   console.log('[audio] loading sounds from', base);
   try {
-    [sounds.beep, sounds.alarm, sounds.chime] = await Promise.all([
-      loadSound(base + 'beep.wav'),
-      loadSound(base + 'alarm.wav'),
-      loadSound(base + 'chime.wav'),
-    ]);
-    console.log('[audio] sounds loaded — beep:', !!sounds.beep,
-                'alarm:', !!sounds.alarm, 'chime:', !!sounds.chime);
+    sounds.teamsCall = await loadSound(base + 'teams_call.mp3');
+    console.log('[audio] sounds loaded — teamsCall:', !!sounds.teamsCall);
   } catch (e) {
     console.error('[audio] initAudio failed:', e);
   }
 }
 
 // ── Alert timing state ────────────────────────────────────────────────────────
-let alertLevel    = 0;
-let lastBeepTime  = 0;
-let lastAlarmTime = 0;
+let alertLevel   = 0;
+let alertSource  = null; // currently playing looping source node
 
-function updateAudio(drowsinessScore, yawnJustDetected) {
-  const now   = Date.now();
-  const level = drowsinessScore >= 60 ? 2 : drowsinessScore >= 40 ? 1 : 0;
+function stopAlert() {
+  if (alertSource) {
+    try { alertSource.stop(); } catch (_) {}
+    alertSource = null;
+  }
+}
+
+function startAlert(buffer) {
+  if (muted || !buffer) return;
+  if (audioCtx.state !== 'running') audioCtx.resume().catch(() => {});
+  const src  = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  gain.gain.value = Math.max(0, Math.min(1, globalVolume));
+  src.buffer = buffer;
+  src.loop   = true;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  src.onended = () => { if (alertSource === src) alertSource = null; };
+  alertSource = src;
+}
+
+function updateAudio(drowsinessScore) {
+  const level = drowsinessScore >= 60 ? 2 : 0;
   alertLevel  = level;
 
   if (level === 2) {
-    // Loud alarm every 5 s, overrides beep
-    if (now - lastAlarmTime >= 5000) {
-      playBuffer(sounds.alarm);
-      lastAlarmTime = now;
-    }
-  } else if (level === 1) {
-    // Soft beep every 10 s
-    if (now - lastBeepTime >= 10000) {
-      playBuffer(sounds.beep);
-      lastBeepTime = now;
-    }
+    if (!alertSource) startAlert(sounds.teamsCall);
   } else {
-    // Safe zone — reset beep timer so next warning fires immediately
-    lastBeepTime = 0;
+    stopAlert();
   }
-
-  if (yawnJustDetected) playBuffer(sounds.chime);
 }
 
 // ── MediaPipe FaceLandmarker ──────────────────────────────────────────────────
@@ -128,7 +109,7 @@ function processFrame() {
   let metrics;
   if (lms) {
     const detected = detState.update(lms, now);
-    updateAudio(detected.drowsinessScore, detected.yawnJustDetected);
+    updateAudio(detected.drowsinessScore);
     metrics = { faceDetected: true, alertLevel, ...detected };
   } else {
     alertLevel = 0;
