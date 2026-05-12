@@ -1,5 +1,3 @@
-# Drowsiness Detector — Chrome Extension (Phase 2)
-
 ## Setup
 
 ### 1. Install vendor files
@@ -59,14 +57,3 @@ drowsiness-extension/
 ├── setup.js            Copies vendor files from node_modules
 └── vendor/             MediaPipe WASM + JS files (created by setup.js)
 ```
-
-## Drowsiness scoring
-
-| Component | Weight | Logic |
-|---|---|---|
-| Eye closure (EAR) | 40% | Linear 0→1 as avg EAR drops from 0.27 to 0.15 |
-| Head tilt | 20% | Linear 0→1 as tilt reaches 30° |
-| Blink duration | 20% | Linear 0→1 as last blink reaches 800 ms |
-| Yawn frequency | 20% | Linear 0→1 at 5 yawns in 5 minutes |
-
-Score = weighted sum × 100%. Alert threshold: 70% held for 2+ seconds (Phase 3).
