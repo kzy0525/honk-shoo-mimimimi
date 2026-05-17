@@ -1,4 +1,4 @@
-// Copies @mediapipe/tasks-vision files into vendor/ and downloads the model.
+// Copies @mediapipe/tasks-vision files into vendor/ and downloads models.
 // Run: node setup.js   (after npm install)
 
 const fs    = require('fs');
@@ -27,32 +27,44 @@ for (const f of fs.readdirSync(path.join(TV, 'wasm'))) {
   console.log(`  ✓  wasm/${f}`);
 }
 
-// 3. Download face_landmarker.task model (~4 MB) if not already present
-const MODEL_DEST = path.join(DEST, 'face_landmarker.task');
-const MODEL_URL  =
-  'https://storage.googleapis.com/mediapipe-models/' +
-  'face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
+// 3. Download models
+const MODELS = [
+  {
+    dest: 'face_landmarker.task',
+    url:  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
+    size: '~4 MB',
+  },
+  {
+    dest: 'selfie_segmenter.tflite',
+    url:  'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',
+    size: '~1.6 MB',
+  },
+];
 
-if (fs.existsSync(MODEL_DEST)) {
-  console.log('  ✓  face_landmarker.task (already present)');
-  done();
-} else {
-  console.log('  ↓  Downloading face_landmarker.task (~4 MB)…');
-  const file = fs.createWriteStream(MODEL_DEST);
-  https.get(MODEL_URL, (res) => {
-    if (res.statusCode === 301 || res.statusCode === 302) {
-      https.get(res.headers.location, (r) => r.pipe(file));
-    } else {
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath);
+    const get = (u) => https.get(u, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302) return get(res.headers.location);
       res.pipe(file);
-    }
-    file.on('finish', () => { file.close(); console.log('  ✓  face_landmarker.task'); done(); });
-  }).on('error', (e) => {
-    fs.unlinkSync(MODEL_DEST);
-    console.error('Download failed:', e.message);
-    process.exit(1);
+      file.on('finish', () => { file.close(); resolve(); });
+    }).on('error', (e) => { try { fs.unlinkSync(destPath); } catch (_) {} reject(e); });
+    get(url);
   });
 }
 
-function done() {
+async function main() {
+  for (const { dest, url, size } of MODELS) {
+    const destPath = path.join(DEST, dest);
+    if (fs.existsSync(destPath)) {
+      console.log(`  ✓  ${dest} (already present)`);
+    } else {
+      console.log(`  ↓  Downloading ${dest} (${size})…`);
+      await downloadFile(url, destPath);
+      console.log(`  ✓  ${dest}`);
+    }
+  }
   console.log('\nVendor files ready. Reload the extension in Chrome.');
 }
+
+main().catch(e => { console.error('Download failed:', e.message); process.exit(1); });

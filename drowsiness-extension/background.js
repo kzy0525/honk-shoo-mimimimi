@@ -60,6 +60,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
 
+  if (msg.type === 'SHOW_OVERLAY') {
+    (async () => {
+      const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      const tab  = tabs[0];
+      if (!tab?.id) return;
+      try {
+        await chrome.tabs.sendMessage(tab.id, msg);
+      } catch {
+        // Content script not yet injected (tab was open before extension loaded)
+        try {
+          await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+          chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
+        } catch (e) {
+          console.error('[bg] could not inject content script:', e);
+        }
+      }
+    })();
+    return false;
+  }
+
   if (msg.type === 'GET_SETTINGS') {
     chrome.storage.local.get(['muted', 'volume']).then(sendResponse).catch(() => sendResponse({}));
     return true; // async response

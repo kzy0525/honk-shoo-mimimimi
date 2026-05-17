@@ -103,6 +103,10 @@ async function init() {
     } catch (_) {}
   });
 
+  document.getElementById('test-seg-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'TEST_SEGMENTATION' }).catch(() => {});
+  });
+
   document.getElementById('debug-btn').addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('debug.html') });
   });
